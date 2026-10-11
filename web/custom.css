@@ -38,6 +38,39 @@
   white-space: nowrap;
 }
 
+/* Bubs Recipes Home Header (Subtle Fade Effect) */
+.bubs-hero-title {
+  letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--text) 25%, var(--accent) 95%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  line-height: 1.15;
+  transition: filter 0.2s ease;
+}
+
+.dark .bubs-hero-title {
+  background: linear-gradient(135deg, var(--text) 35%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bubs-hero-title:hover {
+  filter: brightness(1.08);
+}
+
+.bubs-hero-subtitle {
+  opacity: 0.55;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  align-self: baseline;
+  transition: opacity 0.2s ease;
+}
+
+.bubs-hero-subtitle:hover {
+  opacity: 0.85;
+}
+
 /* Card hover & micro-interactions */
 .recipe-card {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),

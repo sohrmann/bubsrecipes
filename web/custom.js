@@ -177,4 +177,19 @@ document.addEventListener('DOMContentLoaded', () => {
       brandLink.appendChild(text);
     }
   }
+
+  // 4. Bubs Recipes Header on Home Page (Subtle Fade Effect)
+  const homeHeading = document.querySelector('main h1.text-display');
+  if (homeHeading && homeHeading.textContent.trim() === 'All Recipes' && !homeHeading.classList.contains('bubs-hero-title')) {
+    homeHeading.classList.add('bubs-hero-title');
+    homeHeading.textContent = 'Bubs Recipes';
+    const sub = document.createElement('span');
+    sub.className = 'bubs-hero-subtitle text-sm font-semibold tracking-wider uppercase text-muted';
+    sub.innerHTML = '&middot; All Recipes';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex flex-wrap items-baseline gap-x-3 gap-y-1';
+    homeHeading.parentNode.insertBefore(wrapper, homeHeading);
+    wrapper.appendChild(homeHeading);
+    wrapper.appendChild(sub);
+  }
 });

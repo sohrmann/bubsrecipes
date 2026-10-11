@@ -164,6 +164,21 @@ def postprocess(site_dir_str="_site"):
         # Update brand-mark alt
         content = content.replace('alt="Cook" class="brand-mark', 'alt="Bubs Recipes" class="brand-mark')
 
+        # Transform All Recipes heading on home page
+        if html_file.name == "index.html" and len(rel_to_root.parts) == 1:
+            hero_pattern = r'<h1 class="text-display font-bold text-text">\s*All Recipes\s*</h1>'
+            hero_replacement = (
+                '<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">\n'
+                '            <h1 class="text-display font-bold text-text bubs-hero-title">\n'
+                '                Bubs Recipes\n'
+                '            </h1>\n'
+                '            <span class="bubs-hero-subtitle text-sm font-semibold tracking-wider uppercase text-muted">\n'
+                '                &middot; All Recipes\n'
+                '            </span>\n'
+                '        </div>'
+            )
+            content = re.sub(hero_pattern, hero_replacement, content)
+
         # Inject PWA Head Meta before </head>
         formatted_meta = pwa_head_meta.format(rel_prefix=rel_prefix)
         if '<meta name="apple-mobile-web-app-capable"' not in content:
