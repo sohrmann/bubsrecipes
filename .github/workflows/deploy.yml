@@ -1,0 +1,55 @@
+name: Deploy Recipes to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install CookCLI
+        run: |
+          COOK_VERSION="0.38.1"
+          curl -sSL "https://github.com/cooklang/cookcli/releases/download/v${COOK_VERSION}/cook-x86_64-unknown-linux-gnu.tar.gz" -o cook.tar.gz
+          tar -xzf cook.tar.gz
+          sudo mv cook /usr/local/bin/
+          rm cook.tar.gz
+          cook --version
+
+      - name: Validate recipes with CookCLI Doctor
+        run: |
+          cook doctor
+
+      - name: Build static website
+        run: |
+          cook build web
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

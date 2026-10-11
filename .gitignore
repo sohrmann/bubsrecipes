@@ -1,0 +1,21 @@
+# Cooklang static site build output
+_site/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Antigravity local agent workspace skills & MCP configs
+# (Remove or comment out this line if you want to track agent skills in Git)
+.agents/
+
+# Local caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+node_modules/
+
+# Temporary import inbox for raw recipe texts, emails, drafts
+import/*
+!import/.gitkeep
+tmp/
