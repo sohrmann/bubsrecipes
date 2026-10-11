@@ -43,7 +43,8 @@ def postprocess(site_dir_str="_site"):
     manifest_src = web_dir / "manifest.json"
     if manifest_src.exists():
         shutil.copy2(manifest_src, static_dst / "site.webmanifest")
-        print("  ✓ PWA web manifest updated")
+        shutil.copy2(manifest_src, site_dir / "manifest.json")
+        print("  ✓ PWA web manifest updated (site.webmanifest & manifest.json)")
 
     # 3. Copy custom.js to static/js/
     js_dst = static_dst / "js"
@@ -85,6 +86,7 @@ def postprocess(site_dir_str="_site"):
         "./static/js/cooking-mode.js",
         "./static/search-index.js",
         "./static/site.webmanifest",
+        "./manifest.json",
         "./static/favicon.ico",
         "./static/apple-touch-icon.png",
         "./static/android-chrome-192x192.png",
