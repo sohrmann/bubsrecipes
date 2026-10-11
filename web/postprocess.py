@@ -53,15 +53,24 @@ def postprocess(site_dir_str="_site"):
         shutil.copy2(custom_js_src, js_dst / "custom.js")
         print("  ✓ custom.js installed")
 
-    # 4. Append custom.css to static/css/output.css
+    # 4. Append/Update custom.css in static/css/output.css
     output_css = static_dst / "css" / "output.css"
     custom_css_src = web_dir / "custom.css"
     if custom_css_src.exists() and output_css.exists():
         with open(custom_css_src, "r", encoding="utf-8") as f_in:
             custom_css_content = f_in.read()
-        with open(output_css, "a", encoding="utf-8") as f_out:
-            f_out.write("\n\n" + custom_css_content)
-        print("  ✓ custom.css appended to output.css")
+        with open(output_css, "r", encoding="utf-8") as f_curr:
+            curr_content = f_curr.read()
+        marker = "/* ========================================================\n   Bubs Recipes - Custom Brand & Layout Polish"
+        if marker in curr_content:
+            base_content = curr_content.split(marker)[0].rstrip()
+            with open(output_css, "w", encoding="utf-8") as f_out:
+                f_out.write(base_content + "\n\n" + custom_css_content)
+            print("  ✓ custom.css updated cleanly in output.css")
+        else:
+            with open(output_css, "a", encoding="utf-8") as f_out:
+                f_out.write("\n\n" + custom_css_content)
+            print("  ✓ custom.css appended to output.css")
 
     # 5. Collect all HTML and static assets for Service Worker pre-caching
     all_html_files = list(site_dir.rglob("*.html"))
