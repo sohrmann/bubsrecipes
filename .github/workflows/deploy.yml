@@ -40,7 +40,7 @@ jobs:
 
       - name: Build static website
         run: |
-          cook build web
+          cook build web --base-path recipes
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
