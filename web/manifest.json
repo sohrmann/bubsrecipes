@@ -1,7 +1,7 @@
 {
   "id": "/bubsrecipes/",
   "name": "Bubs Recipes",
-  "short_name": "Bubs",
+  "short_name": "Bubs Recipes",
   "description": "Bubs' Personal Recipe Collection - Delicious recipes cooked with love.",
   "start_url": "/bubsrecipes/",
   "scope": "/bubsrecipes/",
