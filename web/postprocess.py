@@ -130,7 +130,7 @@ def postprocess(site_dir_str="_site"):
     <script>
         if ('serviceWorker' in navigator) {{
             window.addEventListener('load', function() {{
-                navigator.serviceWorker.register('{rel_prefix}sw.js').catch(function(err) {{
+                navigator.serviceWorker.register('{rel_prefix}sw.js', {{ scope: '/bubsrecipes/' }}).catch(function(err) {{
                     console.warn('SW registration failed:', err);
                 }});
             }});
