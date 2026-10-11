@@ -8,6 +8,12 @@ This folder may hold recipes written in [Cooklang](https://cooklang.org), a plai
 - Metadata (title, servings, tags, times, source) is YAML frontmatter between `---` lines at the top of the file. Never write the deprecated `>>` metadata lines; convert any you find to frontmatter.
 - Raw recipe text, emails, or notes placed in `import/` should be converted into `recipes/<category>/<name>.cook` using the recipe-import workflow.
 - **Language**: All recipes in this collection must always be written in English. When importing from other languages, translate instructions, ingredients, notes, and metadata to English.
+- **Recipe Photography & Styling**: Every recipe must have a matching 16:9 local photograph saved as `recipes/<category>/<name>.jpg` alongside `recipes/<category>/<name>.cook`. Never use external `image:` URLs in YAML frontmatter; CookCLI automatically detects the co-located `.jpg` file, bundles it into `_site/`, and the PWA Service Worker pre-caches it for offline kitchen access.
+  - When importing or adding a recipe without a local image, generate one using the unified editorial prompt formula:
+    - **Plating**: Generous serving presented in a rustic stoneware bowl, ceramic plate, or wooden board matching the cuisine.
+    - **Details**: Key visible ingredients, golden-seared edges, glossy sauce, fresh herb garnishes, cracked black pepper, subtle rising steam.
+    - **Setting**: Rustic dining table (dark reclaimed wood or sunlit stone), natural soft side window light, shallow depth of field (`f/2.8`), subtle blurred background props (linen napkin, vintage cutlery, wine/water glass).
+    - **Technical**: 16:9 landscape aspect ratio, editorial food magazine style (Bon Appétit / NYT Cooking). Ultra-realistic, authentic textures, no CGI gloss, no text, no watermarks.
 
 ## Use the Cook MCP server
 

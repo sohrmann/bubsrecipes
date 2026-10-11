@@ -1,0 +1,137 @@
+/* ========================================================
+   Bubs Recipes - Custom Brand & Layout Polish
+   ======================================================== */
+
+:root {
+  --accent: #e05a2f;
+  --accent-strong: #c84c24;
+  --accent-text: #b8431d;
+  --accent-soft: #fdeee9;
+  --accent-ink: #ffffff;
+  --radius-card: 14px;
+  --radius-control: 8px;
+}
+
+.dark {
+  --accent: #f26f45;
+  --accent-strong: #e05a2f;
+  --accent-text: #fa9572;
+  --accent-soft: #38221b;
+  --accent-ink: #ffffff;
+  --radius-card: 14px;
+  --radius-control: 8px;
+}
+
+/* Nav & Brand Header */
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  text-decoration: none;
+}
+
+.brand-text {
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Card hover & micro-interactions */
+.recipe-card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease;
+  overflow: hidden;
+}
+
+.recipe-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.08), 0 4px 8px -4px rgba(0, 0, 0, 0.04);
+  border-color: var(--border-strong);
+}
+
+.dark .recipe-card:hover {
+  box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.45);
+}
+
+.recipe-card img {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.recipe-card:hover img {
+  transform: scale(1.03);
+}
+
+.recipe-card-icon {
+  transition: transform 0.2s ease;
+}
+
+.recipe-card:hover .recipe-card-icon {
+  transform: scale(1.08);
+}
+
+/* Interactive Ingredient Checklist */
+.ingredient-row {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s ease, opacity 0.2s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.ingredient-row:hover {
+  filter: brightness(0.97);
+}
+
+.dark .ingredient-row:hover {
+  filter: brightness(1.08);
+}
+
+.ingredient-row:active {
+  transform: scale(0.995);
+}
+
+.ingredient-row.checked {
+  opacity: 0.45;
+}
+
+.ingredient-row.checked .font-medium,
+.ingredient-row.checked .row-value {
+  text-decoration: line-through;
+}
+
+/* Polish step boxes and timers */
+.step-box {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.step-box:hover {
+  border-color: var(--border-strong);
+}
+
+.step-number {
+  box-shadow: 0 2px 6px rgba(224, 90, 47, 0.2);
+}
+
+.timer-badge {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+/* Category icons font sizing */
+.category-icon-emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* iOS Safe Areas & PWA padding */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  body {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

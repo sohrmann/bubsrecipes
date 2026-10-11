@@ -42,6 +42,10 @@ jobs:
         run: |
           cook build web --base-path recipes
 
+      - name: Polish layout & configure PWA
+        run: |
+          python3 web/postprocess.py _site
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
