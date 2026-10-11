@@ -192,4 +192,23 @@ document.addEventListener('DOMContentLoaded', () => {
     wrapper.appendChild(homeHeading);
     wrapper.appendChild(sub);
   }
+
+  // 5. Auto-cleanup of legacy root-level Service Worker (e.g. old root CineBubs with scope '/')
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const reg of registrations) {
+        try {
+          const scopePath = new URL(reg.scope).pathname;
+          if (scopePath === '/' || scopePath === '') {
+            console.warn('Unregistering legacy root Service Worker:', reg.scope);
+            reg.unregister().then((success) => {
+              if (success) console.log('Successfully unregistered legacy root Service Worker.');
+            });
+          }
+        } catch (e) {
+          console.error('Error checking service worker registration:', e);
+        }
+      }
+    });
+  }
 });

@@ -141,6 +141,18 @@ def postprocess(site_dir_str="_site"):
     <script>
         if ('serviceWorker' in navigator) {{
             window.addEventListener('load', function() {{
+                // Auto-unregister legacy domain root service worker (e.g. old root CineBubs with scope '/')
+                navigator.serviceWorker.getRegistrations().then(function(regs) {{
+                    for (var i = 0; i < regs.length; i++) {{
+                        try {{
+                            var p = new URL(regs[i].scope).pathname;
+                            if (p === '/' || p === '') {{
+                                console.warn('Unregistering legacy root SW:', regs[i].scope);
+                                regs[i].unregister();
+                            }}
+                        }} catch (e) {{}}
+                    }}
+                }});
                 navigator.serviceWorker.register('{rel_prefix}sw.js', {{ scope: '/bubsrecipes/' }}).catch(function(err) {{
                     console.warn('SW registration failed:', err);
                 }});
@@ -186,9 +198,16 @@ def postprocess(site_dir_str="_site"):
         if '<meta name="apple-mobile-web-app-capable"' not in content:
             content = content.replace("</head>", f"{formatted_meta}\n</head>")
 
-        # Inject Scripts before </body>
-        if "custom.js" not in content:
-            formatted_scripts = pwa_scripts_template.format(rel_prefix=rel_prefix)
+        # Inject / Update Scripts before </body>
+        marker = "<!-- Custom Interactions & PWA Service Worker -->"
+        formatted_scripts = pwa_scripts_template.format(rel_prefix=rel_prefix)
+        if marker in content:
+            content = re.sub(
+                r"<!-- Custom Interactions & PWA Service Worker -->[\s\S]*?</body>",
+                formatted_scripts,
+                content
+            )
+        else:
             content = content.replace("</body>", formatted_scripts)
 
         # Polish footer text
