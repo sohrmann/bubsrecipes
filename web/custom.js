@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
     baking: '🥐',
     breakfast: '🥞',
     mains: '🍲',
+    salads: '🥗',
     sauces: '🫙',
     desserts: '🍰',
     drinks: '🍹',
