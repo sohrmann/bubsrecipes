@@ -39,12 +39,16 @@ def postprocess(site_dir_str="_site"):
                 shutil.copy2(icon_file, static_dst / icon_file.name)
         print("  ✓ Custom icons copied to static/")
 
-    # 2. Update Manifest
+    # 2. Update Manifest & CNAME
     manifest_src = web_dir / "manifest.json"
     if manifest_src.exists():
         shutil.copy2(manifest_src, static_dst / "site.webmanifest")
         shutil.copy2(manifest_src, site_dir / "manifest.json")
         print("  ✓ PWA web manifest updated (site.webmanifest & manifest.json)")
+
+    with open(site_dir / "CNAME", "w", encoding="utf-8") as f_cname:
+        f_cname.write("recipes.bubs.page\n")
+    print("  ✓ CNAME file (recipes.bubs.page) created")
 
     # 3. Copy custom.js to static/js/
     js_dst = static_dst / "js"
@@ -141,19 +145,7 @@ def postprocess(site_dir_str="_site"):
     <script>
         if ('serviceWorker' in navigator) {{
             window.addEventListener('load', function() {{
-                // Auto-unregister legacy domain root service worker (e.g. old root CineBubs with scope '/')
-                navigator.serviceWorker.getRegistrations().then(function(regs) {{
-                    for (var i = 0; i < regs.length; i++) {{
-                        try {{
-                            var p = new URL(regs[i].scope).pathname;
-                            if (p === '/' || p === '') {{
-                                console.warn('Unregistering legacy root SW:', regs[i].scope);
-                                regs[i].unregister();
-                            }}
-                        }} catch (e) {{}}
-                    }}
-                }});
-                navigator.serviceWorker.register('{rel_prefix}sw.js', {{ scope: '/bubsrecipes/' }}).catch(function(err) {{
+                navigator.serviceWorker.register('{rel_prefix}sw.js', {{ scope: '/' }}).catch(function(err) {{
                     console.warn('SW registration failed:', err);
                 }});
             }});

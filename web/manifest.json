@@ -1,23 +1,23 @@
 {
-  "id": "/bubsrecipes/",
+  "id": "/",
   "name": "Bubs Recipes",
   "short_name": "Bubs Recipes",
   "description": "Bubs' Personal Recipe Collection - Delicious recipes cooked with love.",
-  "start_url": "/bubsrecipes/",
-  "scope": "/bubsrecipes/",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#fcfcfb",
   "theme_color": "#e05a2f",
   "icons": [
     {
-      "src": "/bubsrecipes/static/android-chrome-192x192.png",
+      "src": "/static/android-chrome-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/bubsrecipes/static/android-chrome-512x512.png",
+      "src": "/static/android-chrome-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
