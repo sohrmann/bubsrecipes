@@ -217,3 +217,150 @@ html {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* ========================================================
+   Quick Recipe Import Modal & Navbar Button
+   ======================================================== */
+
+.bubs-add-recipe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-control);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 6px rgba(224, 90, 47, 0.22);
+  white-space: nowrap;
+}
+
+.bubs-add-recipe-btn:hover {
+  background-color: var(--accent-strong);
+}
+
+.bubs-add-recipe-btn:active {
+  transform: scale(0.97);
+}
+
+.bubs-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(15, 14, 13, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.bubs-modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bubs-modal-card {
+  width: 100%;
+  max-width: 30rem;
+  background: var(--surface, #ffffff);
+  color: var(--text, #1c1917);
+  border: 1px solid var(--border, #e7e5e4);
+  border-radius: var(--radius-card);
+  box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.28);
+  padding: 1.35rem;
+  transform: translateY(8px) scale(0.98);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.dark .bubs-modal-card {
+  background: var(--surface, #1c1917);
+  border-color: var(--border, #292524);
+}
+
+.bubs-modal-backdrop.open .bubs-modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.bubs-input,
+.bubs-textarea {
+  width: 100%;
+  background: var(--bg, #fcfcfb);
+  color: var(--text, #1c1917);
+  border: 1px solid var(--border, #d6d3d1);
+  border-radius: var(--radius-control);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.925rem;
+  line-height: 1.4;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dark .bubs-input,
+.dark .bubs-textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.bubs-input:focus,
+.bubs-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.bubs-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border, #d6d3d1);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.bubs-btn-secondary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.bubs-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(1rem);
+  z-index: 10001;
+  background: #1c1917;
+  color: #ffffff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  max-width: 92vw;
+  text-align: center;
+}
+
+.bubs-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

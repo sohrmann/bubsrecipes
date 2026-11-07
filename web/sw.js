@@ -39,20 +39,31 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
+  // Only handle same-origin GET requests
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
 
-  // HTML Navigation & Pages: Stale-While-Revalidate (instant offline access, background update)
-  if (event.request.headers.get('accept')?.includes('text/html') || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+  // HTML, JS, CSS & Manifest: Stale-While-Revalidate (instant offline access, background update for new recipes)
+  const isDynamicAsset =
+    event.request.headers.get('accept')?.includes('text/html') ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.webmanifest') ||
+    url.pathname.endsWith('.json');
+
+  if (isDynamicAsset) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
-        const cachedResponse = await cache.match(event.request);
+        const ignoreSearchReq = url.search ? new Request(url.origin + url.pathname) : event.request;
+        const cachedResponse = (await cache.match(event.request)) || (await cache.match(ignoreSearchReq));
         const fetchPromise = fetch(event.request)
           .then((networkResponse) => {
             if (networkResponse && networkResponse.status === 200) {
-              cache.put(event.request, networkResponse.clone());
+              cache.put(ignoreSearchReq, networkResponse.clone());
             }
             return networkResponse;
           })

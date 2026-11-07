@@ -117,8 +117,13 @@ def postprocess(site_dir_str="_site"):
         with open(sw_src, "r", encoding="utf-8") as f:
             sw_code = f.read()
         
-        # Format precache array into JS
+        # Format precache array into JS and stamp cache version with recipe count
         formatted_assets = ",\n  ".join(f"'{p}'" for p in precache_list)
+        sw_code = re.sub(
+            r"const CACHE_NAME = '[^']+';",
+            f"const CACHE_NAME = 'bubs-recipes-v2-{len(precache_list)}';",
+            sw_code
+        )
         sw_code = re.sub(
             r"const PRECACHE_ASSETS = \[[\s\S]*?\];",
             f"const PRECACHE_ASSETS = [\n  {formatted_assets}\n];",
@@ -132,6 +137,7 @@ def postprocess(site_dir_str="_site"):
     # 7. Enrich HTML pages
     pwa_head_meta = """
     <!-- PWA & Apple Touch Meta Tags -->
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Bubs Recipes">
