@@ -190,6 +190,18 @@ def fetch_webpage_data(url: str) -> dict:
     }
 
 
+def gemini_get(api_key: str, path: str, timeout: int = 30) -> dict:
+    """Call Gemini REST API GET endpoint passing the API key strictly via header."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/{path}"
+    req = urllib.request.Request(
+        url,
+        headers={"x-goog-api-key": api_key},
+        method="GET",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
 def gemini_post(api_key: str, model_path: str, payload: dict, timeout: int = 90) -> dict:
     """Call Gemini REST API passing the API key strictly via header (never in URL)."""
     url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}"
@@ -203,8 +215,99 @@ def gemini_post(api_key: str, model_path: str, payload: dict, timeout: int = 90)
         },
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        body = ""
+        try:
+            body = exc.read().decode("utf-8", errors="replace")[:300]
+            if api_key:
+                body = body.replace(api_key, "***")
+        except Exception:
+            pass
+        raise RuntimeError(f"HTTP {exc.code} {exc.reason}: {body}") from exc
+
+
+def discover_models(api_key: str) -> tuple[list[str], list[str], list[str]]:
+    """Query /v1beta/models to dynamically discover available text and image models."""
+    text_models: list[str] = []
+    gemini_image_models: list[str] = []
+    imagen_models: list[str] = []
+
+    try:
+        data = gemini_get(api_key, "models?pageSize=100")
+        models = data.get("models", [])
+        available_names = {}
+        for m in models:
+            name = m.get("name", "")  # e.g. "models/gemini-3-flash-preview"
+            methods = m.get("supportedGenerationMethods", [])
+            if name:
+                available_names[name] = methods
+
+        print(f"  ✓ Discovered {len(available_names)} models on API key")
+
+        # Preferred text model order
+        preferred_text = [
+            "models/gemini-3-flash-preview",
+            "models/gemini-3-flash",
+            "models/gemini-flash-latest",
+            "models/gemini-3.1-pro-preview",
+            "models/gemini-3-pro-preview",
+            "models/gemini-pro-latest",
+            "models/gemini-2.5-flash",
+            "models/gemini-2.5-pro",
+            "models/gemini-2.0-flash",
+        ]
+        for pref in preferred_text:
+            if pref in available_names and "generateContent" in available_names[pref]:
+                text_models.append(f"{pref}:generateContent")
+
+        # Add any other available gemini text models supporting generateContent
+        for name, methods in available_names.items():
+            if "generateContent" not in methods:
+                continue
+            low = name.lower()
+            if "image" in low or "imagen" in low:
+                gemini_image_models.append(f"{name}:generateContent")
+            elif (
+                "gemini" in low
+                and not any(x in low for x in ("tts", "audio", "embedding", "robotics", "computer-use", "thinking", "aqa", "vision"))
+                and f"{name}:generateContent" not in text_models
+            ):
+                text_models.append(f"{name}:generateContent")
+
+        # Add Imagen predict models
+        for name, methods in available_names.items():
+            low = name.lower()
+            if "imagen" in low and "predict" in methods:
+                imagen_models.append(f"{name}:predict")
+
+    except Exception as exc:
+        print(f"  ! Model discovery note: {exc}")
+
+    # Fallbacks if discovery didn't populate
+    if not text_models:
+        text_models = [
+            "models/gemini-flash-latest:generateContent",
+            "models/gemini-3-flash-preview:generateContent",
+            "models/gemini-2.5-flash:generateContent",
+            "models/gemini-pro-latest:generateContent",
+        ]
+    if not gemini_image_models:
+        gemini_image_models = [
+            "models/gemini-3-pro-image-preview:generateContent",
+            "models/gemini-2.5-flash-image:generateContent",
+            "models/gemini-2.5-flash-image-preview:generateContent",
+            "models/gemini-2.0-flash-exp-image-generation:generateContent",
+        ]
+    if not imagen_models:
+        imagen_models = [
+            "models/imagen-4.0-generate-001:predict",
+            "models/imagen-3.0-generate-002:predict",
+        ]
+
+    return text_models, gemini_image_models, imagen_models
 
 
 def generate_cooklang_via_gemini(
@@ -298,16 +401,13 @@ Return ONLY a valid JSON object matching this exact schema:
         },
     }
 
-    models_to_try = [
-        "models/gemini-2.5-flash:generateContent",
-        "models/gemini-2.5-pro:generateContent",
-        "models/gemini-2.0-flash:generateContent",
-    ]
+    models_to_try, _, _ = discover_models(api_key)
     last_err = None
     for model_path in models_to_try:
         try:
             resp = gemini_post(api_key, model_path, payload, timeout=90)
             text = resp["candidates"][0]["content"]["parts"][0]["text"]
+            print(f"  ✓ Generated Cooklang recipe via {model_path}")
             return json.loads(text)
         except Exception as exc:
             print(f"  ! Model {model_path} attempt failed: {exc}")
@@ -510,12 +610,9 @@ def generate_editorial_photo(api_key: str, title: str, plating_brief: str, outpu
         "Ultra-realistic, authentic food textures, no CGI gloss, no text, no watermarks, no labels."
     )
 
+    _, generate_content_models, imagen_models = discover_models(api_key)
+
     # 1. Try Gemini native image generation models (generateContent)
-    generate_content_models = [
-        "models/gemini-2.5-flash-image:generateContent",
-        "models/gemini-2.5-flash-image-preview:generateContent",
-        "models/gemini-2.0-flash-exp-image-generation:generateContent",
-    ]
     for model_path in generate_content_models:
         try:
             payload = {
@@ -537,11 +634,6 @@ def generate_editorial_photo(api_key: str, title: str, plating_brief: str, outpu
             print(f"  ! Image model {model_path} note: {exc}")
 
     # 2. Try Imagen 3 / Imagen 4 predict endpoint
-    imagen_models = [
-        "models/imagen-3.0-generate-002:predict",
-        "models/imagen-4.0-generate-001:predict",
-        "models/imagen-3.0-generate-001:predict",
-    ]
     for model_path in imagen_models:
         try:
             payload = {
@@ -571,10 +663,11 @@ def main() -> None:
     parser.add_argument("--notes", default="", help="Optional user notes or modifications")
     args = parser.parse_args()
 
-    api_key = os.environ.get("GEMINI_API_KEY", "").strip()
+    api_key = os.environ.get("GEMINI_API_KEY", "").strip().strip("'\"")
     if not api_key:
         print("Error: GEMINI_API_KEY environment variable is not set.", file=sys.stderr)
         sys.exit(1)
+    print(f"  -> GEMINI_API_KEY configured (length={len(api_key)}, AIza_prefix={api_key.startswith('AIza')})")
 
     raw_source = (args.source or os.environ.get("RECIPE_SOURCE") or "").strip()
     notes = (args.notes or os.environ.get("RECIPE_NOTES") or "").strip()
