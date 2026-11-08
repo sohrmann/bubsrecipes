@@ -584,4 +584,284 @@ document.addEventListener('DOMContentLoaded', () => {
       openImportModal(combined, sharedUrl && sharedTitle ? sharedTitle : '');
     }
   }
+
+  // 7. Dynamic Recipe Portion & Servings Scaler
+  const servingsPill = document.querySelector('.metadata-pill.metadata-servings');
+  if (servingsPill) {
+    const rawServingsText = (servingsPill.textContent || '').trim();
+    const servingsMatch = rawServingsText.match(/(\d+(?:\.\d+)?)/);
+    const baseServings = servingsMatch ? parseFloat(servingsMatch[1]) : null;
+
+    if (baseServings && baseServings > 0) {
+      // Snapshot original sidebar quantities, step-ref quantities, and cooking-mode JSON
+      const sidebarValues = Array.from(
+        document.querySelectorAll('ul.ingredient-list:not(.cookware-list) li.ingredient-row .row-value')
+      ).map((el) => ({
+        el,
+        origText: (el.textContent || '').trim()
+      }));
+
+      const stepRefSpans = Array.from(document.querySelectorAll('.step-refs span')).map((el) => ({
+        el,
+        origText: (el.textContent || '').trim()
+      }));
+
+      const cookingModeScript = document.getElementById('cooking-mode-data');
+      let origCookingDataStr = null;
+      if (cookingModeScript) {
+        origCookingDataStr = cookingModeScript.textContent;
+      }
+
+      // Parse a numeric/fraction token (e.g. "200", "1.5", "1/2", "1 1/2") -> float or null
+      const parseSingleNumber = (str) => {
+        const s = (str || '').trim();
+        if (!s) return null;
+        // Mixed fraction e.g. "1 1/2"
+        const mixedMatch = s.match(/^(\d+)\s+(\d+)\/(\d+)$/);
+        if (mixedMatch) {
+          const den = parseFloat(mixedMatch[3]);
+          return den ? parseFloat(mixedMatch[1]) + parseFloat(mixedMatch[2]) / den : null;
+        }
+        // Simple fraction e.g. "1/2"
+        const fracMatch = s.match(/^(\d+)\/(\d+)$/);
+        if (fracMatch) {
+          const den = parseFloat(fracMatch[2]);
+          return den ? parseFloat(fracMatch[1]) / den : null;
+        }
+        // Decimal or integer
+        if (/^\d+(?:\.\d+)?$/.test(s)) {
+          return parseFloat(s);
+        }
+        return null;
+      };
+
+      const FRACTIONS = [
+        [1 / 8, '1/8'],
+        [1 / 4, '1/4'],
+        [1 / 3, '1/3'],
+        [3 / 8, '3/8'],
+        [1 / 2, '1/2'],
+        [5 / 8, '5/8'],
+        [2 / 3, '2/3'],
+        [3 / 4, '3/4'],
+        [7 / 8, '7/8']
+      ];
+
+      const formatScaledSingle = (val, wasFraction, unitHint) => {
+        if (val <= 0) return '0';
+        const u = (unitHint || '').trim().toLowerCase();
+        const isMetricMassOrVol = u === 'g' || u === 'ml';
+        const isSpoonOrCup =
+          wasFraction || ['tsp', 'tbsp', 'cup', 'cups', 'pinch', 'pinches', 'shot', 'shots'].includes(u);
+
+        if (isMetricMassOrVol) {
+          if (val >= 25) {
+            return String(Math.round(val));
+          }
+          const rounded1 = Math.round(val * 10) / 10;
+          return String(rounded1);
+        }
+
+        if (isSpoonOrCup) {
+          const whole = Math.floor(val + 0.04);
+          const rem = val - whole;
+          if (rem < 0.06) {
+            return whole > 0 ? String(whole) : '1/8';
+          }
+          let bestFrac = null;
+          let bestDiff = 999;
+          for (const [fVal, fStr] of FRACTIONS) {
+            const diff = Math.abs(rem - fVal);
+            if (diff < bestDiff) {
+              bestDiff = diff;
+              bestFrac = fStr;
+            }
+          }
+          if (bestDiff <= 0.05 && bestFrac) {
+            return whole > 0 ? `${whole} ${bestFrac}` : bestFrac;
+          }
+        }
+
+        // General number formatting (at most 2 decimals, strip trailing zeros)
+        const rounded2 = Math.round(val * 100) / 100;
+        return Number(rounded2.toFixed(2)).toString();
+      };
+
+      // Scale a quantity string like "200", "1/2", "375-400" with unitHint
+      const scaleNumericPart = (numStr, factor, unitHint) => {
+        const s = (numStr || '').trim();
+        if (!s) return s;
+
+        // Check range e.g. "375-400" or "2-3"
+        const rangeMatch = s.match(/^(\d+(?:\.\d+)?(?:\s+\d+\/\d+|\/\d+)?)\s*([–-])\s*(\d+(?:\.\d+)?(?:\s+\d+\/\d+|\/\d+)?)$/);
+        if (rangeMatch) {
+          const n1 = parseSingleNumber(rangeMatch[1]);
+          const sep = rangeMatch[2];
+          const n2 = parseSingleNumber(rangeMatch[3]);
+          if (n1 !== null && n2 !== null) {
+            const wf = s.includes('/');
+            return `${formatScaledSingle(n1 * factor, wf, unitHint)}${sep}${formatScaledSingle(n2 * factor, wf, unitHint)}`;
+          }
+        }
+
+        const n = parseSingleNumber(s);
+        if (n !== null) {
+          return formatScaledSingle(n * factor, s.includes('/'), unitHint);
+        }
+        return s;
+      };
+
+      // Scale combined "<qty> <unit>" string (e.g. "200 g", "1/2 tsp", "375-400 ml", "4")
+      const scaleQtyAndUnit = (rawQtyUnit, factor) => {
+        const trimmed = (rawQtyUnit || '').trim();
+        if (!trimmed) return '';
+        const match = trimmed.match(
+          /^(\d+(?:\.\d+)?(?:\s+\d+\/\d+|\/\d+)?(?:\s*[–-]\s*\d+(?:\.\d+)?(?:\s+\d+\/\d+|\/\d+)?)?)(?:\s+(.*))?$/
+        );
+        if (!match) return trimmed;
+        const numPart = match[1];
+        const unitPart = (match[2] || '').trim();
+        const scaledNum = scaleNumericPart(numPart, factor, unitPart);
+        return unitPart ? `${scaledNum} ${unitPart}` : scaledNum;
+      };
+
+      let currentServings = baseServings;
+
+      // Build interactive stepper UI + preset multiplier buttons
+      const wrapper = document.createElement('div');
+      wrapper.className = 'bubs-scaler-wrap';
+
+      servingsPill.classList.add('bubs-servings-interactive');
+      servingsPill.innerHTML = `
+        <button type="button" class="bubs-step-btn print:hidden" data-dir="-1" aria-label="Decrease servings" title="Fewer servings">&minus;</button>
+        <span class="bubs-servings-label">👥 ${baseServings} ${baseServings === 1 ? 'serving' : 'servings'}</span>
+        <button type="button" class="bubs-step-btn print:hidden" data-dir="1" aria-label="Increase servings" title="More servings">&#43;</button>
+      `;
+
+      const presetsEl = document.createElement('div');
+      presetsEl.className = 'bubs-scale-presets print:hidden';
+      presetsEl.innerHTML = `
+        <button type="button" class="bubs-preset-btn" data-mult="0.5" title="Half batch (½×)">&frac12;&times;</button>
+        <button type="button" class="bubs-preset-btn active" data-mult="1" title="Original recipe (1×)">1&times;</button>
+        <button type="button" class="bubs-preset-btn" data-mult="2" title="Double batch (2×)">2&times;</button>
+      `;
+
+      servingsPill.parentNode.insertBefore(wrapper, servingsPill);
+      wrapper.appendChild(servingsPill);
+      wrapper.appendChild(presetsEl);
+
+      const labelEl = servingsPill.querySelector('.bubs-servings-label');
+      const minusBtn = servingsPill.querySelector('button[data-dir="-1"]');
+      const presetBtns = Array.from(presetsEl.querySelectorAll('.bubs-preset-btn'));
+
+      const applyServings = (targetServings) => {
+        currentServings = Math.max(0.5, Math.round(targetServings * 100) / 100);
+        const factor = currentServings / baseServings;
+        const isDefault = Math.abs(factor - 1) < 0.001;
+
+        const dispServings = Number(currentServings.toFixed(1)).toString();
+        labelEl.textContent = `👥 ${dispServings} ${currentServings === 1 ? 'serving' : 'servings'}`;
+        servingsPill.classList.toggle('is-scaled', !isDefault);
+        if (minusBtn) minusBtn.disabled = currentServings <= 0.5;
+
+        presetBtns.forEach((btn) => {
+          const m = parseFloat(btn.getAttribute('data-mult'));
+          btn.classList.toggle('active', Math.abs(factor - m) < 0.01);
+        });
+
+        // 1. Update Sidebar Ingredients
+        sidebarValues.forEach(({ el, origText }) => {
+          if (!origText) return;
+          if (isDefault) {
+            el.textContent = origText;
+            el.classList.remove('bubs-qty-scaled');
+          } else {
+            el.textContent = scaleQtyAndUnit(origText, factor);
+            el.classList.add('bubs-qty-scaled');
+          }
+        });
+
+        // 2. Update Step Reference Spans
+        stepRefSpans.forEach(({ el, origText }) => {
+          const colonIdx = origText.indexOf(':');
+          if (colonIdx === -1) return;
+          if (isDefault) {
+            el.textContent = origText;
+            el.classList.remove('bubs-qty-scaled');
+            return;
+          }
+          const prefix = origText.slice(0, colonIdx + 1);
+          const afterColon = origText.slice(colonIdx + 1).trim();
+          const hasComma = afterColon.endsWith(',');
+          const rawVal = hasComma ? afterColon.slice(0, -1).trim() : afterColon;
+          const scaledVal = scaleQtyAndUnit(rawVal, factor);
+          el.textContent = `${prefix} ${scaledVal}${hasComma ? ',' : ''}`;
+          el.classList.add('bubs-qty-scaled');
+        });
+
+        // 3. Update Cooking Mode JSON Data
+        if (cookingModeScript && origCookingDataStr) {
+          if (isDefault) {
+            cookingModeScript.textContent = origCookingDataStr;
+          } else {
+            try {
+              const data = JSON.parse(origCookingDataStr);
+              data.scale = Math.round(factor * 100) / 100;
+              (data.sections || []).forEach((sec) => {
+                (sec.ingredients || []).forEach((ing) => {
+                  if (ing.quantity) {
+                    ing.quantity = scaleNumericPart(String(ing.quantity), factor, ing.unit || '');
+                  }
+                });
+                (sec.steps || []).forEach((st) => {
+                  (st.ingredients || []).forEach((ing) => {
+                    if (ing.quantity) {
+                      ing.quantity = scaleNumericPart(String(ing.quantity), factor, ing.unit || '');
+                    }
+                  });
+                });
+              });
+              cookingModeScript.textContent = JSON.stringify(data);
+            } catch (err) {
+              console.warn('Could not update cooking-mode-data for scaling:', err);
+            }
+          }
+        }
+      };
+
+      servingsPill.addEventListener('click', (e) => {
+        const btn = e.target.closest('.bubs-step-btn');
+        if (!btn || btn.disabled) return;
+        const dir = parseInt(btn.getAttribute('data-dir'), 10);
+        // If currentServings is fractional (e.g. 0.5 or 1.5), snap to nearest integer in direction
+        let next;
+        if (!Number.isInteger(currentServings)) {
+          next = dir > 0 ? Math.ceil(currentServings) : Math.floor(currentServings);
+          if (next < 1) next = 0.5;
+        } else {
+          next = currentServings + dir;
+          if (next < 1) next = 0.5;
+        }
+        applyServings(next);
+      });
+
+      presetsEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('.bubs-preset-btn');
+        if (!btn) return;
+        const mult = parseFloat(btn.getAttribute('data-mult'));
+        if (mult > 0) {
+          applyServings(baseServings * mult);
+        }
+      });
+
+      // Support ?scale= or ?servings= in URL query string
+      if (searchParams.has('servings')) {
+        const qServ = parseFloat(searchParams.get('servings'));
+        if (qServ > 0) applyServings(qServ);
+      } else if (searchParams.has('scale')) {
+        const qScale = parseFloat(searchParams.get('scale'));
+        if (qScale > 0) applyServings(baseServings * qScale);
+      }
+    }
+  }
 });

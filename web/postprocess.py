@@ -208,12 +208,13 @@ def postprocess(site_dir_str="_site"):
         else:
             content = content.replace("</body>", formatted_scripts)
 
-        # Polish footer text
-        content = re.sub(
-            r'Built with\s*<a href="https://cooklang\.org/cli/"',
-            r'Bubs Recipes &middot; Built with <a href="https://cooklang.org/cli/"',
-            content
-        )
+        # Polish footer text (idempotent)
+        if 'Bubs Recipes &middot; Built with' not in content:
+            content = re.sub(
+                r'Built with\s*<a href="https://cooklang\.org/cli/"',
+                r'Bubs Recipes &middot; Built with <a href="https://cooklang.org/cli/"',
+                content
+            )
 
         with open(html_file, "w", encoding="utf-8") as f:
             f.write(content)
