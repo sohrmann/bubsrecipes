@@ -247,32 +247,43 @@ def discover_models(api_key: str) -> tuple[list[str], list[str], list[str]]:
 
         print(f"  ✓ Discovered {len(available_names)} models on API key")
 
-        # Preferred text model order
+        # Preferred text model order (Gemini 4 Argon primary, Gemini 3.8 Flash fallback)
         preferred_text = [
-            "models/gemini-3-flash-preview",
-            "models/gemini-3-flash",
-            "models/gemini-flash-latest",
+            "models/gemini-4-argon",
+            "models/gemini-3.8-flash",
             "models/gemini-3.1-pro-preview",
-            "models/gemini-3-pro-preview",
+            "models/gemini-3-flash-preview",
+            "models/gemini-flash-latest",
             "models/gemini-pro-latest",
-            "models/gemini-2.5-flash",
-            "models/gemini-2.5-pro",
-            "models/gemini-2.0-flash",
         ]
         for pref in preferred_text:
             if pref in available_names and "generateContent" in available_names[pref]:
                 text_models.append(f"{pref}:generateContent")
 
-        # Add any other available gemini text models supporting generateContent
+        # Preferred image model order (Nano Banana Pro primary, Nano Banana 2.1 fallback)
+        preferred_image = [
+            "models/gemini-3-pro-image",
+            "models/gemini-nano-banana-2.1",
+            "models/gemini-3.1-flash-image",
+            "models/gemini-3-pro-image-preview",
+            "models/gemini-3.1-flash-image-preview",
+            "models/gemini-2.5-flash-image",
+        ]
+        for pref in preferred_image:
+            if pref in available_names and "generateContent" in available_names[pref]:
+                gemini_image_models.append(f"{pref}:generateContent")
+
+        # Add any other available gemini text or image models supporting generateContent
         for name, methods in available_names.items():
             if "generateContent" not in methods:
                 continue
             low = name.lower()
-            if "image" in low or "imagen" in low:
-                gemini_image_models.append(f"{name}:generateContent")
+            if "image" in low or "banana" in low or "imagen" in low:
+                if f"{name}:generateContent" not in gemini_image_models:
+                    gemini_image_models.append(f"{name}:generateContent")
             elif (
                 "gemini" in low
-                and not any(x in low for x in ("tts", "audio", "embedding", "robotics", "computer-use", "thinking", "aqa", "vision"))
+                and not any(x in low for x in ("tts", "audio", "embedding", "robotics", "computer-use", "thinking", "aqa", "vision", "transcribe", "live"))
                 and f"{name}:generateContent" not in text_models
             ):
                 text_models.append(f"{name}:generateContent")
@@ -289,17 +300,17 @@ def discover_models(api_key: str) -> tuple[list[str], list[str], list[str]]:
     # Fallbacks if discovery didn't populate
     if not text_models:
         text_models = [
-            "models/gemini-flash-latest:generateContent",
+            "models/gemini-4-argon:generateContent",
+            "models/gemini-3.8-flash:generateContent",
+            "models/gemini-3.1-pro-preview:generateContent",
             "models/gemini-3-flash-preview:generateContent",
-            "models/gemini-2.5-flash:generateContent",
-            "models/gemini-pro-latest:generateContent",
         ]
     if not gemini_image_models:
         gemini_image_models = [
-            "models/gemini-3-pro-image-preview:generateContent",
+            "models/gemini-3-pro-image:generateContent",
+            "models/gemini-nano-banana-2.1:generateContent",
+            "models/gemini-3.1-flash-image:generateContent",
             "models/gemini-2.5-flash-image:generateContent",
-            "models/gemini-2.5-flash-image-preview:generateContent",
-            "models/gemini-2.0-flash-exp-image-generation:generateContent",
         ]
     if not imagen_models:
         imagen_models = [
@@ -579,6 +590,11 @@ def save_16_9_jpeg(raw_image_bytes: bytes, output_path: Path) -> None:
         return
 
     with Image.open(io.BytesIO(raw_image_bytes)) as img:
+        # Preserve native 1376x768 JPEG bytes directly without lossy re-compression
+        if img.size == (TARGET_WIDTH, TARGET_HEIGHT) and (img.format or "").upper() in ("JPEG", "JPG"):
+            output_path.write_bytes(raw_image_bytes)
+            return
+
         img = img.convert("RGB")
         w, h = img.size
         target_ratio = TARGET_WIDTH / TARGET_HEIGHT
@@ -595,7 +611,7 @@ def save_16_9_jpeg(raw_image_bytes: bytes, output_path: Path) -> None:
                 img = img.crop((0, top, w, top + new_h))
 
         img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-        img.save(output_path, format="JPEG", quality=90, optimize=True)
+        img.save(output_path, format="JPEG", quality=92, optimize=True)
 
 
 def generate_editorial_photo(api_key: str, title: str, plating_brief: str, output_path: Path) -> None:
@@ -612,13 +628,14 @@ def generate_editorial_photo(api_key: str, title: str, plating_brief: str, outpu
 
     _, generate_content_models, imagen_models = discover_models(api_key)
 
-    # 1. Try Gemini native image generation models (generateContent)
+    # 1. Try Gemini native image generation models (generateContent) with explicit 16:9 imageConfig
     for model_path in generate_content_models:
         try:
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
                     "responseModalities": ["TEXT", "IMAGE"],
+                    "imageConfig": {"aspectRatio": "16:9"},
                 },
             }
             resp = gemini_post(api_key, model_path, payload, timeout=120)

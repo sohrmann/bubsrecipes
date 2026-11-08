@@ -9,7 +9,9 @@ Thumbs.db
 # (Remove or comment out this line if you want to track agent skills in Git)
 .agents/
 
-# Local caches and virtual environments
+# Local caches, environment variables, and virtual environments
+.env
+.env.*
 __pycache__/
 *.py[cod]
 .venv/
