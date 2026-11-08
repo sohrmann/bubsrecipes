@@ -260,13 +260,13 @@ def discover_models(api_key: str) -> tuple[list[str], list[str], list[str]]:
             if pref in available_names and "generateContent" in available_names[pref]:
                 text_models.append(f"{pref}:generateContent")
 
-        # Preferred image model order (Nano Banana Pro primary, Nano Banana 2.1 fallback)
+        # Preferred image model order (Balanced: Nano Banana 2.1 primary, Nano Banana 2 fallback)
         preferred_image = [
-            "models/gemini-3-pro-image",
             "models/gemini-nano-banana-2.1",
             "models/gemini-3.1-flash-image",
-            "models/gemini-3-pro-image-preview",
             "models/gemini-3.1-flash-image-preview",
+            "models/gemini-3-pro-image",
+            "models/gemini-3-pro-image-preview",
             "models/gemini-2.5-flash-image",
         ]
         for pref in preferred_image:
@@ -307,9 +307,9 @@ def discover_models(api_key: str) -> tuple[list[str], list[str], list[str]]:
         ]
     if not gemini_image_models:
         gemini_image_models = [
-            "models/gemini-3-pro-image:generateContent",
             "models/gemini-nano-banana-2.1:generateContent",
             "models/gemini-3.1-flash-image:generateContent",
+            "models/gemini-3-pro-image:generateContent",
             "models/gemini-2.5-flash-image:generateContent",
         ]
     if not imagen_models:
